@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Stack, Text } from "@mantine/core";
+import { ActionIcon, Container, Group, Stack, Text } from "@mantine/core";
 import { IconBackspace } from "@tabler/icons-react";
 import Link from "next/link";
 import { ConversationChat } from "~/comp/conversation/Chat";
@@ -11,17 +11,19 @@ export default function Conversations({
 }) {
   const model = searchParams.model;
   return (
-    <Stack p="lg" gap="lg" align="center">
-      <Group preventGrowOverflow>
-        <ActionIcon component={Link} href="/" variant="subtle">
-          <IconBackspace />
-        </ActionIcon>
-        <Text ta="center" size="xs">
-          Model: {model}
-        </Text>
-      </Group>
-      <ConversationChat model={model} />
-      <ConversationServerStatus model={model} />
-    </Stack>
+    <Container>
+      <Stack p="lg" gap="lg" align="center">
+        <Group preventGrowOverflow>
+          <ActionIcon component={Link} href="/" variant="subtle">
+            <IconBackspace />
+          </ActionIcon>
+          <Text ta="center" size="xs">
+            Model: {model}
+          </Text>
+        </Group>
+        <ConversationChat model={model} />
+        <ConversationServerStatus model={model} />
+      </Stack>
+    </Container>
   );
 }

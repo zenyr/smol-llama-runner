@@ -5,6 +5,7 @@
 }
 .message {
   background-color: var(--mantine-color-default);
+  white-space: pre-wrap;
 }
 .message:hover {
   background-color: var(--mantine-color-default-hover);
