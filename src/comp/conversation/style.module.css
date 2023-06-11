@@ -1,0 +1,21 @@
+.form {
+  width: 100%;
+  position: fixed;
+  bottom: 0;
+}
+.message {
+  background-color: var(--mantine-color-default);
+}
+.message:hover {
+  background-color: var(--mantine-color-default-hover);
+}
+.message[data-user] {
+  align-self: flex-end;
+}
+.message[data-assistant] {
+  align-self: flex-start;
+}
+.loader {
+  display: inline-flex;
+  transform: translate(0.1rem, -0.5rem);
+}
