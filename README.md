@@ -2,7 +2,7 @@
 
 ![screencapture](./media/smol-llama-runner.gif)
 
-Over the weekend, I built a Next.js 13 + Mantine UI library testbed project using TypeScript. The project extends Local Llama CPP and features a very simple and 'smol' user interface. Powered by Local Llama CPP's HTTP server implementation and EventSource browser implementation, the project automatically runs multiple processes to handle completions and shuts off after two minutes of inactivity. This MIT-licensed project is a fun toy for developers to play with.
+Over the weekend, I built a Next.js 13 + Mantine UI library testbed project using TypeScript. The project extends Local Llama CPP and features a very simple and 'smol' user interface. Powered by Local Llama CPP's HTTP server implementation and EventSource browser implementation, the project automatically runs multiple processes to handle completions and shuts off after a minute of inactivity. This MIT-licensed project is a fun toy for developers to play with.
 
 ![how this intro was made](./media/screengrab.png)
 

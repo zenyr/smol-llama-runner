@@ -69,14 +69,19 @@ class ServerManager {
         "SELECT modelPath, port, deadline FROM servers"
       );
       const modelPaths = new Set<string>();
-      for (const { modelPath, ...row } of rows) {
+      for (const { modelPath, deadline, ...row } of rows) {
         const old = this.processes.get(modelPath);
-        this.processes.set(modelPath, { ...old, ...row });
+        const latestDeadline = Math.max(deadline, old?.deadline ?? 0);
+        this.processes.set(modelPath, {
+          ...old,
+          deadline: latestDeadline,
+          ...row,
+        });
         modelPaths.add(modelPath);
       }
-      this.processes.forEach((_, modelPath) => {
-        if (!modelPaths.has(modelPath)) {
-          this.processes.delete(modelPath);
+      this.processes.forEach((old, modelPath) => {
+        if (!modelPaths.has(modelPath) || old.deadline < Date.now()) {
+          this.stopServer(modelPath);
         }
       });
     } catch (e) {
@@ -139,10 +144,7 @@ class ServerManager {
         port.toString(),
       ]);
       const deadline = Date.now() + TTL;
-      const ttl = setTimeout(
-        () => this.stopServer(modelPath),
-        deadline - Date.now()
-      );
+      const ttl = setTimeout(() => this.stopServer(modelPath), TTL);
 
       this.processes.set(modelPath, { process, port, ttl, deadline });
       this.usedPorts.add(port);
@@ -168,7 +170,7 @@ class ServerManager {
 
   public stopServer(modelPath: string): void {
     const server = this.processes.get(modelPath);
-    if (server && server.process) {
+    if (server) {
       clearTimeout(server.ttl);
       server.process?.kill();
       this.processes.delete(modelPath);
