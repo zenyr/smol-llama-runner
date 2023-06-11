@@ -11,7 +11,7 @@ export default function Conversations({
 }) {
   const model = searchParams.model;
   return (
-    <Container>
+    <Container size="md">
       <Stack p="lg" gap="lg" align="center">
         <Group preventGrowOverflow>
           <ActionIcon component={Link} href="/" variant="subtle">

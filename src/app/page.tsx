@@ -3,7 +3,7 @@ import { ModelSelector } from "~/comp/index/ModelSelector";
 
 export default function Home() {
   return (
-    <Container>
+    <Container size="md">
       <Stack p="lg" gap="lg" align="center">
         <ModelSelector />
       </Stack>
