@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { serverManager } from "~/lib/serverManager";
 
+export const dynamic = "force-dynamic";
 export const GET = async (req: Request, ctx: { params: { model: string } }) => {
   const { model } = ctx.params;
   let port = await serverManager?.getPortByModelPath(model);
