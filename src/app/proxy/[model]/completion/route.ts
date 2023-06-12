@@ -12,7 +12,7 @@ export const POST = async (
 
   try {
     const dto = await CompletionDto.parse(await req.json());
-    const port = await serverManager.getPortByModelPath(model);
+    const port = await serverManager?.getPortByModelPath(model);
     if (!port)
       return new Response(`Port for ${model} not found`, { status: 404 });
     const response = await axios.post(

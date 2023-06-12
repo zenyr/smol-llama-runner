@@ -16,9 +16,9 @@ const beautfyFilesize = (size: number) => {
 };
 
 export const ModelSelector = () => {
-  const [models, setModels] = useState<{ filename: string; size: number }[]>(
-    []
-  );
+  const [models, setModels] = useState<
+    { filename: string; size: number; port?: number }[]
+  >([]);
   useEffect(() => {
     axios("/models")
       .then((r) => r.data)
@@ -30,6 +30,7 @@ export const ModelSelector = () => {
         <tr>
           <th>Model</th>
           <th>Size</th>
+          <th>Port</th>
         </tr>
       </thead>
       <tbody>
@@ -41,6 +42,7 @@ export const ModelSelector = () => {
               </Anchor>
             </td>
             <td>{beautfyFilesize(m.size)}</td>
+            <td>{m.port || "-"}</td>
           </tr>
         ))}
       </tbody>

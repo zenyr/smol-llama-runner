@@ -1,10 +1,10 @@
-import { spawn, ChildProcessWithoutNullStreams } from "child_process";
-import { resolve } from "node:path";
-import { dirs } from "./dirnames";
-import { readdir } from "node:fs/promises";
+import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { existsSync, statSync } from "fs";
-import { ulid } from "ulid";
+import { readdir } from "node:fs/promises";
+import { resolve } from "node:path";
 import sqlite3 from "sqlite3";
+import { ulid } from "ulid";
+import { dirs } from "./dirnames";
 
 type ServerInfo = {
   process?: ChildProcessWithoutNullStreams;
@@ -118,11 +118,16 @@ class ServerManager {
     }
   }
 
+  sanitizeModelPath(modelPath: string): string {
+    return modelPath.replace(/\.\.[/\\]/g, "");
+  }
+
   public async startServer(
-    modelPath: string,
+    _modelPath: string,
     ctxSize: number = DEFAULT_CTX_SIZE
   ): Promise<number> {
     await this.loadFromDb();
+    const modelPath = this.sanitizeModelPath(_modelPath);
 
     const existingServer = this.processes.get(modelPath);
     if (existingServer) {
@@ -199,24 +204,29 @@ class ServerManager {
   }
 
   public async getAvailableModels(): Promise<
-    { filename: string; size: number }[]
+    { filename: string; size: number; port: number | undefined }[]
   > {
+    await this.loadFromDb();
     const files = await readdir(MODEL_DIR);
-    return files
-      .filter((f) => {
-        const filename = f.toLowerCase();
-        return filename.includes("ggml") && filename.endsWith(".bin");
-      })
-      .map((f) => ({
-        filename: f,
-        size: statSync(resolve(MODEL_DIR, f)).size,
-      }));
+    return await Promise.all(
+      files
+        .filter((f) => {
+          const filename = f.toLowerCase();
+          return filename.includes("ggml") && filename.endsWith(".bin");
+        })
+        .map(async (f) => ({
+          filename: f,
+          size: statSync(resolve(MODEL_DIR, f)).size,
+          port: await this.getPortByModelPath(f, true),
+        }))
+    );
   }
 
   public async getPortByModelPath(
-    modelPath: string
+    modelPath: string,
+    skipDb = false
   ): Promise<number | undefined> {
-    await this.loadFromDb();
+    if (!skipDb) await this.loadFromDb();
 
     if (process.env.NODE_ENV !== "production") {
       if (modelPath === "WizardLM-7B-uncensored.ggmlv3.q4_0.bin") {
@@ -247,6 +257,8 @@ class ServerManager {
   }
 }
 
-process.on("beforeExit", () => serverManager.stopAll());
+process.once("beforeExit", () => serverManager?.stopAll());
+process.once("SIGINT", () => serverManager?.stopAll());
 
-export const serverManager = new ServerManager();
+const isServer = typeof window === "undefined";
+export const serverManager = isServer ? new ServerManager() : void 0;

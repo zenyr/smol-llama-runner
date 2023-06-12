@@ -43,7 +43,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
 
   let text = [] as string[];
   try {
-    const port = await serverManager.getPortByModelPath(model as string);
+    const port = await serverManager?.getPortByModelPath(model as string);
     if (!port) {
       const data = await SseDto.format({
         error: `Model ${model} not found`,

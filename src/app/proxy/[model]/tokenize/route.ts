@@ -12,7 +12,7 @@ export const POST = async (
 
   try {
     const dto = await TokenizeDto.parse(await req.json());
-    const port = await serverManager.getPortByModelPath(model);
+    const port = await serverManager?.getPortByModelPath(model);
     if (!port)
       return NextResponse.json(
         { error: `Port for ${model} not found.` },
