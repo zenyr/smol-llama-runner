@@ -27,12 +27,14 @@ export class ServerManager2 {
   constructor() {
     process.on("beforeExit", () => this.stopAll());
     process.on("SIGINT", () => this.stopAll());
+    console.log("initialized", { id });
     (async () => {
       await this.primeTable();
       await this.loadFromDb();
       while (!this._dead) {
+        console.log("ticking...", { id });
         await this.collectGarbage();
-        await setTimeout(5000);
+        await setTimeout(10000);
       }
     })();
   }
