@@ -125,7 +125,7 @@ class ServerManager {
     const modelPath = this.sanitizeModelPath(_modelPath);
 
     const existingServer = this.processes.get(modelPath);
-    if (existingServer) {
+    if (existingServer && existingServer.process) {
       this.resetTTL(modelPath);
       return existingServer.port;
     }
@@ -133,7 +133,7 @@ class ServerManager {
     if (!existsSync(modelFilePath))
       throw new Error("Model not found: '" + modelFilePath + "'");
 
-    const port = this.findAvailablePort(STARTING_PORT);
+    const port = existingServer?.port || this.findAvailablePort(STARTING_PORT);
     console.log("Starting...", {
       SERVER_EXECUTABLE,
       modelFilePath,
