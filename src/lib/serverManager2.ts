@@ -32,7 +32,6 @@ export class ServerManager2 {
       await this.primeTable();
       await this.loadFromDb();
       while (!this._dead) {
-        console.log("ticking...", { id });
         await this.collectGarbage();
         await setTimeout(10000);
       }
@@ -176,6 +175,7 @@ export class ServerManager2 {
       // meh
     }
     delete this.processes[modelPath];
+    await this.saveToDb();
   }
   private findAvailablePort() {
     const ports = Object.values(this.processes).map(({ port }) => port);
@@ -200,6 +200,7 @@ export class ServerManager2 {
   }
 
   public async stopAll() {
+    console.log("Stopping all processes...");
     if (this._dead) return;
     this._dead = true;
     for (const { process } of Object.values(this.processes)) {

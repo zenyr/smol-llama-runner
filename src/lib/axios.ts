@@ -1,3 +1,7 @@
-import _axios from "axios";
+import _axios, { AxiosHeaders } from "axios";
 
-export const axios = _axios.create({});
+const headers = new AxiosHeaders();
+// never cache
+headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+
+export const axios = _axios.create({ headers });

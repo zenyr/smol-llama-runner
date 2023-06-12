@@ -20,7 +20,7 @@ export const ModelSelector = () => {
     { filename: string; size: number; port?: number }[]
   >([]);
   useEffect(() => {
-    axios("/models")
+    axios(`/models?_=${Math.random()}`)
       .then((r) => r.data)
       .then(setModels);
   }, []);

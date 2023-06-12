@@ -13,7 +13,7 @@ export const ConversationServerStatus = ({ model }: { model: string }) => {
   useEffect(() => {
     interval.start();
     axios
-      .get(`/proxy/${model}`)
+      .get(`/proxy/${model}?_=${Math.random()}`)
       .then((j) => setStatus(j.data))
       .catch(() => setStatus(null));
     return interval.stop;
