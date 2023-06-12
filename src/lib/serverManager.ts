@@ -52,7 +52,7 @@ const initTable = async () => {
       console.error(e);
     }
   }
-  console.log('ServerManager initialized with session id "' + sessionId + '"');
+  console.log(`ServerManager initialized (${sessionId})`);
 };
 if (!initialized) initTable();
 
@@ -126,7 +126,7 @@ class ServerManager {
 
     const existingServer = this.processes.get(modelPath);
     if (existingServer && existingServer.process) {
-      this.resetTTL(modelPath);
+      await this.resetTTL(modelPath, existingServer.deadline);
       return existingServer.port;
     }
     const modelFilePath = resolve(MODEL_DIR, modelPath);
@@ -180,22 +180,26 @@ class ServerManager {
       server.process?.kill();
       this.processes.delete(modelPath);
       this.usedPorts.delete(server.port);
-      console.log(`Server for model ${modelPath} stopped`);
+      console.log(`Server for model ${modelPath} stopped (${sessionId})`);
       if (!skipSave) await this.saveToDb();
     }
   }
 
-  public resetTTL(modelPath: string): void {
+  public async resetTTL(
+    modelPath: string,
+    deadline = Date.now() + TTL
+  ): Promise<void> {
+    await this.loadFromDb();
     const server = this.processes.get(modelPath);
     if (server && server.process) {
       clearTimeout(server.ttl);
-      server.deadline = Date.now() + TTL;
+      server.deadline = deadline;
       server.ttl = setTimeout(
         () => this.stopServer(modelPath),
         server.deadline - Date.now()
       );
+      await this.saveToDb();
     }
-    this.saveToDb();
   }
 
   public async getAvailableModels(): Promise<

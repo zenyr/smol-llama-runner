@@ -6,7 +6,7 @@ export const GET = async (req: Request, ctx: { params: { model: string } }) => {
   const { model } = ctx.params;
   let port = await serverManager?.getPortByModelPath(model);
   if (port) {
-    serverManager?.resetTTL(model);
+    await serverManager?.resetTTL(model);
     return NextResponse.json({ port });
   }
 
