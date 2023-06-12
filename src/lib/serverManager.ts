@@ -87,7 +87,7 @@ class ServerManager {
           zombiePaths.push(modelPath);
         }
       });
-      await Promise.all(zombiePaths.map(this.stopServer)); // avoid zombies
+      await Promise.all(zombiePaths.map(this.stopServer.bind(this))); // avoid zombies
     } catch (e) {
       if (e instanceof Error) {
         console.error(e);
