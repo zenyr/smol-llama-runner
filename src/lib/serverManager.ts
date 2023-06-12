@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import sqlite3 from "sqlite3";
 import { ulid } from "ulid";
 import { dirs } from "./dirnames";
+import { ServerManager2 } from "./serverManager2";
 
 type ServerInfo = {
   process?: ChildProcessWithoutNullStreams;
@@ -256,8 +257,9 @@ class ServerManager {
   }
 }
 
-process.once("beforeExit", () => serverManager?.stopAll());
-process.once("SIGINT", () => serverManager?.stopAll());
-
 const isServer = typeof window === "undefined";
-export const serverManager = isServer ? new ServerManager() : void 0;
+export const serverManager = isServer ? new ServerManager2() : void 0;
+if (serverManager) {
+  process.once("beforeExit", () => serverManager.stopAll());
+  process.once("SIGINT", () => serverManager.stopAll());
+}
