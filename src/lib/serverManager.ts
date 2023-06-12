@@ -69,9 +69,12 @@ class ServerManager {
         "SELECT modelPath, port, deadline FROM servers"
       );
       const modelPaths = new Set<string>();
+      const zombiePaths = [] as string[];
       for (const { modelPath, deadline, ...row } of rows) {
         const old = this.processes.get(modelPath);
+        // update deadline if it already existed and renewed
         const latestDeadline = Math.max(deadline, old?.deadline ?? 0);
+
         this.processes.set(modelPath, {
           ...old,
           deadline: latestDeadline,
@@ -81,9 +84,10 @@ class ServerManager {
       }
       this.processes.forEach((old, modelPath) => {
         if (!modelPaths.has(modelPath) || old.deadline < Date.now()) {
-          this.stopServer(modelPath);
+          zombiePaths.push(modelPath);
         }
       });
+      await Promise.all(zombiePaths.map(this.stopServer)); // avoid zombies
     } catch (e) {
       if (e instanceof Error) {
         console.error(e);
@@ -101,6 +105,7 @@ class ServerManager {
       );
 
       for (const { modelPath, port, deadline } of serializedProcesses) {
+        if (deadline < Date.now()) continue; // avoid zombies
         await executeQuery(
           "INSERT INTO servers (modelPath, port, deadline) VALUES (?, ?, ?)",
           [modelPath, port, deadline]
@@ -168,7 +173,7 @@ class ServerManager {
     console.log(`All servers stopped`);
   }
 
-  public stopServer(modelPath: string): void {
+  public async stopServer(modelPath: string): Promise<void> {
     const server = this.processes.get(modelPath);
     if (server) {
       clearTimeout(server.ttl);
@@ -176,6 +181,7 @@ class ServerManager {
       this.processes.delete(modelPath);
       this.usedPorts.delete(server.port);
       console.log(`Server for model ${modelPath} stopped`);
+      await this.saveToDb();
     }
   }
 
