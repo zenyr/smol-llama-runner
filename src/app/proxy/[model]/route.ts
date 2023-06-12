@@ -13,7 +13,7 @@ export const GET = async (req: Request, ctx: { params: { model: string } }) => {
   port = await serverManager?.startServer(model);
   if (!port)
     return NextResponse.json(
-      JSON.stringify({ error: `Model ${model} not found` }),
+      JSON.stringify({ error: `Port for model ${model} not found` }),
       { status: 404 }
     );
   return NextResponse.json({ port });

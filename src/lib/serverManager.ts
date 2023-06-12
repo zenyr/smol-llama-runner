@@ -12,7 +12,9 @@ type ServerInfo = {
   ttl?: NodeJS.Timeout;
   deadline: number;
 };
-type SerializedInfo = Omit<ServerInfo, "process"> & { modelPath: string };
+type SerializedInfo = Omit<ServerInfo, "process" | "ttl"> & {
+  modelPath: string;
+};
 
 const DEFAULT_CTX_SIZE = 2048;
 const STARTING_PORT = 4000;
@@ -69,7 +71,6 @@ class ServerManager {
         "SELECT modelPath, port, deadline FROM servers"
       );
       const modelPaths = new Set<string>();
-      const zombiePaths = [] as string[];
       for (const { modelPath, deadline, ...row } of rows) {
         const old = this.processes.get(modelPath);
         // update deadline if it already existed and renewed
@@ -82,12 +83,6 @@ class ServerManager {
         });
         modelPaths.add(modelPath);
       }
-      this.processes.forEach((old, modelPath) => {
-        if (!modelPaths.has(modelPath) || old.deadline < Date.now()) {
-          zombiePaths.push(modelPath);
-        }
-      });
-      await Promise.all(zombiePaths.map(this.stopServer.bind(this))); // avoid zombies
     } catch (e) {
       if (e instanceof Error) {
         console.error(e);
@@ -178,15 +173,15 @@ class ServerManager {
     console.log(`All servers stopped`);
   }
 
-  public async stopServer(modelPath: string): Promise<void> {
+  public async stopServer(modelPath: string, skipSave = false): Promise<void> {
     const server = this.processes.get(modelPath);
-    if (server) {
+    if (server && server.process) {
       clearTimeout(server.ttl);
       server.process?.kill();
       this.processes.delete(modelPath);
       this.usedPorts.delete(server.port);
       console.log(`Server for model ${modelPath} stopped`);
-      await this.saveToDb();
+      if (!skipSave) await this.saveToDb();
     }
   }
 
@@ -199,8 +194,8 @@ class ServerManager {
         () => this.stopServer(modelPath),
         server.deadline - Date.now()
       );
-      console.log(`TTL reset for server of model ${modelPath}`);
     }
+    this.saveToDb();
   }
 
   public async getAvailableModels(): Promise<
