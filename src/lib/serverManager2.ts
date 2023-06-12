@@ -6,6 +6,7 @@ import { setTimeout } from "node:timers/promises";
 import sqlite3 from "sqlite3";
 import { dirs } from "./dirnames";
 import { stat } from "fs/promises";
+import { ulid } from "ulid";
 
 const TTL = 60 * 1000; // 1 minute
 const MODEL_DIR = dirs.models;
@@ -18,10 +19,14 @@ type ProcessInfo = {
   lastT: number;
 };
 
+const id = ulid();
+
 export class ServerManager2 {
   private processes: Record<string, ProcessInfo> = {};
   private _dead = false;
   constructor() {
+    process.on("beforeExit", () => this.stopAll());
+    process.on("SIGINT", () => this.stopAll());
     (async () => {
       await this.primeTable();
       await this.loadFromDb();
@@ -59,17 +64,6 @@ export class ServerManager2 {
     });
   }
 
-  private async transaction(execution: () => Promise<unknown>) {
-    await this.query("BEGIN EXCLUSIVE TRANSACTION");
-    try {
-      await execution();
-    } catch (e) {
-      await this.query("ROLLBACK TRANSACTION");
-      throw e;
-    } finally {
-      await this.query("COMMIT TRANSACTION");
-    }
-  }
   private async loadFromDb() {
     const rows = await this.query("SELECT * FROM processes");
     for (const { modelPath, port, lastT } of rows) {
@@ -84,7 +78,7 @@ export class ServerManager2 {
     const rows = Object.entries(this.processes).map(
       ([modelPath, { port, lastT }]) => ({ modelPath, port, lastT })
     );
-    await this.transaction(async () => {
+    try {
       await this.query("DELETE FROM processes");
       for (const { modelPath, port, lastT } of rows) {
         await this.query(
@@ -92,7 +86,9 @@ export class ServerManager2 {
           [modelPath, port, lastT]
         );
       }
-    });
+    } catch (e) {
+      console.error("saveToDb Error:", e);
+    }
   }
 
   private cleanseModelPath(modelPath: string) {
@@ -118,13 +114,21 @@ export class ServerManager2 {
 
   public async getPortByModelPath(modelPath: string, skipDb = false) {
     if (!skipDb) await this.loadFromDb();
+    if (process.env.NODE_ENV !== "production") {
+      if (modelPath === "WizardLM-7B-uncensored.ggmlv3.q4_0.bin") {
+        return 8080;
+      }
+    }
     return this.processes[modelPath]?.port;
   }
 
   public async updateT(modelPath: string) {
     await this.loadFromDb();
-    this.processes[modelPath].lastT = Date.now();
-    await this.saveToDb();
+    const process = this.processes[modelPath];
+    if (process) {
+      process.lastT = Date.now();
+      await this.saveToDb();
+    }
   }
 
   public async startProcess(
@@ -132,6 +136,7 @@ export class ServerManager2 {
     ctxSize = 2048
   ): Promise<number> {
     const modelPath = this.cleanseModelPath(_modelPath);
+    console.log("startProcess", { modelPath, id });
     const oldPort = await this.getPortByModelPath(modelPath);
     if (oldPort) {
       await this.updateT(modelPath);
@@ -160,12 +165,13 @@ export class ServerManager2 {
   }
   private async stopProcess(modelPath: string) {
     const { process } = this.processes[modelPath];
-    if (process) {
-      try {
+    console.log("stopProcess", { modelPath, id });
+    try {
+      if (process) {
         process.kill();
-      } catch {
-        // meh
       }
+    } catch {
+      // meh
     }
     delete this.processes[modelPath];
   }
@@ -186,17 +192,16 @@ export class ServerManager2 {
       ([_, { lastT }]) => now - lastT > TTL
     );
     for (const [modelPath] of toDelete) {
-      this.stopProcess(modelPath);
+      await this.stopProcess(modelPath);
     }
     await this.saveToDb();
   }
 
   public async stopAll() {
+    if (this._dead) return;
     this._dead = true;
     for (const { process } of Object.values(this.processes)) {
       process?.kill();
     }
   }
 }
-
-const isServer = typeof window === "undefined";
