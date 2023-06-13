@@ -7,7 +7,8 @@ export const GET = async (req: Request, ctx: { params: { model: string } }) => {
   let port = await serverManager?.getPortByModelPath(model);
   if (port) {
     await serverManager?.updateT(model);
-    return NextResponse.json({ port });
+    const memory = (await serverManager?.getMemoryUsageByModelPath(model)) || 0;
+    return NextResponse.json({ port, memory });
   }
 
   port = await serverManager?.startProcess(model);
@@ -16,5 +17,6 @@ export const GET = async (req: Request, ctx: { params: { model: string } }) => {
       JSON.stringify({ error: `Port for model ${model} not found` }),
       { status: 404 }
     );
-  return NextResponse.json({ port });
+  const memory = (await serverManager?.getMemoryUsageByModelPath(model)) || 0;
+  return NextResponse.json({ port, memory });
 };

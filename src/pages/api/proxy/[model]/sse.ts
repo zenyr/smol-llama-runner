@@ -3,7 +3,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { axios } from "~/lib/axios";
 import { SseDto } from "~/lib/dto";
-import { serverManager } from "~/lib/serverManager";
 
 const connections = new Set<NextApiResponse<any>>();
 
@@ -43,21 +42,13 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
 
   let text = [] as string[];
   try {
-    const port = await serverManager?.getPortByModelPath(model as string);
-    if (!port) {
-      const data = await SseDto.format({
-        error: `Model ${model} not found`,
-        done: true,
-      });
-
-      res.write(serializeSSE({ data }));
-      return;
-    }
     while (true) {
       const connectionLost = !connections.has(res);
-      const response = await axios.get(`http://localhost:${port}/next-token`, {
-        params: connectionLost ? { stop: true } : void 0,
-      });
+      const response = await axios.get(
+        `http://localhost:3000/proxy/${model}/next-token${
+          connectionLost ? "?stop=true" : ""
+        }`
+      );
       const { content, stop: done } = response.data;
       if (content) text.push(content);
       const data = await SseDto.format({ text, done });
